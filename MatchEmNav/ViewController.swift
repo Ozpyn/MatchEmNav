@@ -1,6 +1,6 @@
 //
-//  GameSceneViewController.swift
-//  MatchEmScene
+//  ViewController.swift
+//  MatchEmNav
 //
 //  Created by ozpyn on 9/18/24.
 //
@@ -14,6 +14,18 @@ class GameSceneViewController: UIViewController {
     var buttonPairs: [String: [UIButton]] = [:]
     var btns: [UIButton] = []
     var firstButton: UIButton?
+    
+    // Difficulty Controls
+    var spawnModifier: Int = 2; // Lower number is higher difficulty, should be a set of 3 options, easy(3) med(2) hard(1)
+    // Speed Controls
+    var rateModifier: Double = 1; // Lower number increases the rate at which pairs spawn
+    // Color Controls
+    var haveRed: Double = 1.0; // flip flop switches turning on and off colors
+    var haveBlue: Double = 1.0;
+    var haveGreen: Double = 1.0;
+    // Playtime Controls
+    var playTime: Double = 12.0;
+    
     
     var score = 0 {
         didSet {
@@ -52,8 +64,12 @@ class GameSceneViewController: UIViewController {
         setupRestartButton()
         setupStartButton()
         setupEndScore()
+        
+        let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(openConfigView))
+                swipeGesture.direction = .left // Adjust direction as needed
+                self.view.addGestureRecognizer(swipeGesture)
     }
-    
+
     func setupStartButton() {
         startButton.setTitle("Start Game", for: .normal)
         startButton.titleLabel?.font = UIFont.systemFont(ofSize: 24)
@@ -70,13 +86,22 @@ class GameSceneViewController: UIViewController {
         endScoreLabel.isHidden = true
         self.view.addSubview(endScoreLabel)
     }
+
+    @objc func openConfigView() {
+        if let configViewController = storyboard?.instantiateViewController(withIdentifier: "ConfigViewController") as? ConfigViewController {
+            configViewController.gameSceneVC = self // Pass the reference of GameSceneViewController
+            navigationController?.pushViewController(configViewController, animated: true)
+        }
+    }
+    
+
     
     @objc func startGame() {
         startButton.isHidden = true // Hide start button
         infoLabel.isHidden = false
         countdown(from: 3)
     }
-    
+
     func setupRestartButton() {
         restartButton.setTitle("Restart?", for: .normal)
         restartButton.titleLabel?.font = UIFont.systemFont(ofSize: 24)
@@ -85,21 +110,18 @@ class GameSceneViewController: UIViewController {
         restartButton.isHidden = true
         self.view.addSubview(restartButton)
     }
-    
+
     @objc func restartGame() {
         endScoreLabel.isHidden = true
-        
         // Reset scores and counts
         self.score = 0
         self.recCount = 0
         self.time = 12.0
-        
         infoLabel.text = labelText(self.time, self.score, self.recCount)
-        
         restartButton.isHidden = true
         startGame()
     }
-    
+
     func countdown(from seconds: Int) {
         var remainingTime = seconds + 1
         let countdownLabel = UILabel(frame: CGRect(x: (self.view.frame.width - 100) / 2, y: (self.view.frame.height - 100) / 2, width: 100, height: 100))
@@ -122,33 +144,37 @@ class GameSceneViewController: UIViewController {
             }
         }
     }
-    
+
     func startGameTimer() {
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
             guard let self = self else { return }
             if self.time > 0 {
-                self.time -= 1
-                self.createRandomRectangleSet()
+                self.time -= 0.1
             } else {
                 timer.invalidate()
                 self.endGame()
             }
         }
+        
+        Timer.scheduledTimer(withTimeInterval: self.rateModifier, repeats: true) { [weak self] timer in
+            guard let self = self else { return }
+            if self.time > 0 {
+                self.createRandomRectangleSet()
+            } else {
+                timer.invalidate()
+            }
+        }
     }
-    
+
     func endGame() {
         // Clear existing buttons and pairs
         for button in btns {
             button.removeFromSuperview()
         }
         btns.removeAll()
-        buttonPairs.removeAll()
-        
-        infoLabel.isHidden = true
-        
-        endScoreLabel.text = scoreLabel(score)
+        // Show end score
         endScoreLabel.isHidden = false
-
+        endScoreLabel.text = scoreLabel(score)
         restartButton.isHidden = false
     }
     
@@ -160,7 +186,7 @@ class GameSceneViewController: UIViewController {
         let height = CGFloat.random(in: minSize...maxSize)
         
         let randomChar = String(UnicodeScalar(Array(0x1F300...0x1F3F0).randomElement()!)!)
-        let color = UIColor(red: CGFloat.random(in: 0...1.0), green: CGFloat.random(in: 0...1.0), blue: CGFloat.random(in: 0...1.0), alpha: 1.0)
+        let color = UIColor(red: CGFloat.random(in: 0...haveRed), green: CGFloat.random(in: 0...haveGreen), blue: CGFloat.random(in: 0...haveBlue), alpha: 1.0)
         
         let cornerRadius = min(width, height) / 3
         
@@ -233,7 +259,7 @@ class GameSceneViewController: UIViewController {
                     buttonPairs[title] = nil
                     self.score += 1
                     
-                    if (self.score % 2) == 1{
+                    if (self.score % spawnModifier) == 1{
                         createRandomRectangleSet() //Difficult
                     }
                 } else {
