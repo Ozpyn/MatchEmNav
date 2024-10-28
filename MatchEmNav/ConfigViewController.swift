@@ -106,11 +106,13 @@ class ConfigViewController: UIViewController, UITableViewDataSource, UITableView
         gameScene.haveRed = redSwitch.isOn ? 1.0 : 0.1
         gameScene.haveBlue = blueSwitch.isOn ? 1.0 : 0.1
         gameScene.haveGreen = greenSwitch.isOn ? 1.0 : 0.1
-        gameScene.time = Double(timeSlider.value)
         gameScene.playTime = Double(timeSlider.value)
     }
 
     @objc func returnToGameScene() {
         navigationController?.popViewController(animated: true) // Return to GameSceneViewController
+        if let isHidden = gameSceneVC?.pauseButton.isHidden, !isHidden {
+            gameSceneVC?.pauseGame()
+        }
     }
 }

@@ -58,6 +58,12 @@ class GameSceneViewController: UIViewController {
     let restartButton = UIButton(type: .system)
     let endScoreLabel = UILabel()
     
+    var gameTimer: Timer?
+    var spawnTimer: Timer?
+    var isPaused: Bool = false
+    
+    let pauseButton = UIButton(type: .system)
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.infoLabel.text = labelText(self.time, self.score, self.recCount)
@@ -69,6 +75,16 @@ class GameSceneViewController: UIViewController {
         let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(openConfigView))
                 swipeGesture.direction = .left // Adjust direction as needed
                 self.view.addGestureRecognizer(swipeGesture)
+        setupPauseButton()
+    }
+
+    func setupPauseButton() {
+        pauseButton.setImage(UIImage(systemName: "pause"), for: .normal) // Use the pause icon
+        pauseButton.tintColor = .systemBlue // Set a tint color if desired
+        pauseButton.frame = CGRect(x: self.view.frame.width - 75, y: 50, width: 75, height: 75)
+        pauseButton.addTarget(self, action: #selector(pauseGame), for: .touchUpInside)
+        pauseButton.isHidden = true;
+        self.view.addSubview(pauseButton)
     }
 
     func setupStartButton() {
@@ -90,6 +106,9 @@ class GameSceneViewController: UIViewController {
 
     @objc func openConfigView() {
         if let configViewController = storyboard?.instantiateViewController(withIdentifier: "ConfigViewController") as? ConfigViewController {
+            if !isPaused && !pauseButton.isHidden{
+                pauseGame()
+            }
             configViewController.gameSceneVC = self // Pass the reference of GameSceneViewController
             navigationController?.pushViewController(configViewController, animated: true)
         }
@@ -99,7 +118,9 @@ class GameSceneViewController: UIViewController {
     
     @objc func startGame() {
         startButton.isHidden = true // Hide start button
+        pauseButton.isHidden = false
         infoLabel.isHidden = false
+        self.time = self.playTime
         countdown(from: 3)
     }
 
@@ -117,7 +138,6 @@ class GameSceneViewController: UIViewController {
         // Reset scores and counts
         self.score = 0
         self.recCount = 0
-        self.time = 12.0
         infoLabel.text = labelText(self.time, self.score, self.recCount)
         restartButton.isHidden = true
         startGame()
@@ -146,8 +166,13 @@ class GameSceneViewController: UIViewController {
         }
     }
 
+    var timersRunning: Bool = false // Add this property to track timer state
+
     func startGameTimer() {
-        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
+        guard !timersRunning else { return } // Prevent creating new timers if already running
+        timersRunning = true // Mark timers as running
+
+        gameTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
             guard let self = self else { return }
             if self.time > 0 {
                 self.time -= 0.1
@@ -156,8 +181,8 @@ class GameSceneViewController: UIViewController {
                 self.endGame()
             }
         }
-        
-        Timer.scheduledTimer(withTimeInterval: self.rateModifier, repeats: true) { [weak self] timer in
+
+        spawnTimer = Timer.scheduledTimer(withTimeInterval: self.rateModifier, repeats: true) { [weak self] timer in
             guard let self = self else { return }
             if self.time > 0 {
                 self.createRandomRectangleSet()
@@ -166,6 +191,35 @@ class GameSceneViewController: UIViewController {
             }
         }
     }
+
+    @objc func pauseGame() {
+        if isPaused {
+            resumeGame()
+        } else {
+            isPaused = true
+            gameTimer?.invalidate()
+            spawnTimer?.invalidate()
+            timersRunning = false // Mark timers as not running
+            disableGameButtons(true)
+            pauseButton.setImage(UIImage(systemName: "play"), for: .normal) // Change to play icon
+        }
+    }
+
+    func resumeGame() {
+        isPaused = false
+        startGameTimer() // Restart the timers
+        disableGameButtons(false)
+        pauseButton.setImage(UIImage(systemName: "pause"), for: .normal) // Change back to pause icon
+    }
+
+
+
+    func disableGameButtons(_ disable: Bool) {
+        for button in btns {
+            button.isUserInteractionEnabled = !disable
+        }
+    }
+
 
     func endGame() {
         // Clear existing buttons and pairs
@@ -183,6 +237,8 @@ class GameSceneViewController: UIViewController {
         
         // Show the restart button
         restartButton.isHidden = false
+        pauseButton.isHidden = true
+        isPaused = true;
     }
 
     func addToScores(score: Int) {
@@ -210,8 +266,11 @@ class GameSceneViewController: UIViewController {
         let maxY = (self.view.frame.maxY - self.view.safeAreaInsets.bottom - infoLabel.frame.height - height)
         
         for _ in 0...1 {
-            let x = CGFloat.random(in: 0...self.view.frame.maxX - width)
             let y = CGFloat.random(in: self.view.safeAreaInsets.top...maxY)
+            var x = CGFloat.random(in: 0...self.view.frame.maxX - width)
+            if (y < self.view.safeAreaInsets.top + pauseButton.frame.height){
+                x = CGFloat.random(in: 0...(self.view.frame.maxX - width - pauseButton.frame.width))
+            }
 
             let frame = CGRect(x: x, y: y, width: width, height: height)
             let rectBtn = UIButton(frame: frame)
@@ -301,3 +360,4 @@ class GameSceneViewController: UIViewController {
         }
     }
 }
+
