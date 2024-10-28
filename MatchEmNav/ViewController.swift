@@ -25,6 +25,7 @@ class GameSceneViewController: UIViewController {
     var haveGreen: Double = 1.0;
     // Playtime Controls
     var playTime: Double = 12.0;
+    var highScores: [Int] = []
     
     
     var score = 0 {
@@ -172,11 +173,27 @@ class GameSceneViewController: UIViewController {
             button.removeFromSuperview()
         }
         btns.removeAll()
-        // Show end score
+        
+        // Update and display the end score
         endScoreLabel.isHidden = false
         endScoreLabel.text = scoreLabel(score)
+        
+        // Add the final score to the high scores
+        addToScores(score: score)
+        
+        // Show the restart button
         restartButton.isHidden = false
     }
+
+    func addToScores(score: Int) {
+        highScores.append(score)
+        highScores.sort(by: >)
+        if highScores.count > 3 {
+            highScores = Array(highScores.prefix(3))
+        }
+    }
+
+
     
     func createRandomRectangleSet() {
         let minSize: CGFloat = 50.0
@@ -242,7 +259,8 @@ class GameSceneViewController: UIViewController {
             }
         } else {
             // Second button tapped
-            if let title = sender.title(for: .normal), let pair = buttonPairs[title] {
+            
+            if let title = sender.title(for: .normal), let pair = buttonPairs[title], title == firstButton?.currentTitle, sender.backgroundColor == firstButton?.backgroundColor {
 //                if sender.transform != .identity {
                 if sender.layer.borderColor != nil {
                     // If the second button is already highlighted, unhighlight first
@@ -259,16 +277,17 @@ class GameSceneViewController: UIViewController {
                     buttonPairs[title] = nil
                     self.score += 1
                     
-                    if (self.score % spawnModifier) == 1{
+                    if (self.score % spawnModifier) == 0{
                         createRandomRectangleSet() //Difficult
                     }
+                }
                 } else {
                     // No match
                     firstButton?.transform = .identity // Reset scale
                     firstButton?.layer.borderColor = nil // Reset Border
                     
                 }
-            }
+            
             firstButton = nil // Reset for the next pair
         }
     }
