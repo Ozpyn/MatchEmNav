@@ -140,8 +140,15 @@ class GameSceneViewController: UIViewController {
         self.recCount = 0
         infoLabel.text = labelText(self.time, self.score, self.recCount)
         restartButton.isHidden = true
-        startGame()
+        
+        // Invalidate existing timers to prevent issues
+        gameTimer?.invalidate()
+        spawnTimer?.invalidate()
+        timersRunning = false // Reset timer state
+
+        startGame() // Start the game
     }
+
 
     func countdown(from seconds: Int) {
         var remainingTime = seconds + 1
