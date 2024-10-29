@@ -307,7 +307,7 @@ class GameSceneViewController: UIViewController {
         if firstButton == nil {
             // First button tapped
             firstButton = sender
-            sender.transform = CGAffineTransform(scaleX: 1.25, y: 1.25) // Slightly enlarge
+            sender.transform = CGAffineTransform(scaleX: 0.8, y: 0.8) // Slightly shrink
             if let fillColor = sender.backgroundColor {
                 // Get the RGBA components of the fill color
                 var red: CGFloat = 0
